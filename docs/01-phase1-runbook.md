@@ -52,7 +52,7 @@ python bench/bench.py --model $M --num-requests 32 --concurrency 8 --out results
 python bench/bench.py --model $M --num-requests 32 --concurrency 1 --out results/baseline.jsonl
 
 # the sweep
-python bench/bench.py --model $M --num-requests 256 --concurrency 2 4 8 16 32 64 128 \
+python bench/bench.py --model $M --num-requests 512 --concurrency 2 4 8 16 32 64 128 256 \
   --input-words 256 --output-tokens 128 --out results/baseline.jsonl
 ```
 While it runs, in a third pane: `watch -n1 nvidia-smi` (watch memory and utilization change).
@@ -60,11 +60,15 @@ Re-run the sweep once more into `results/baseline_run2.jsonl`. If the two runs d
 percent, something is noisy and you should find out why before trusting either.
 
 ## 6. Predict first, then compare
-Fill in before running:
-- c=1 ITL: floor is 16 GB / 3.35 TB/s = about 4.8 ms. Real engines land above the floor. Your guess: ___ ms
-- Logged KV cache size: (0.90 x 80 GB - 16 GB weights - overhead) / 128 KB per token = roughly 350-450k tokens. Your guess: ___
-- Throughput at c=128 vs c=1: your guess for the ratio: ___x
-- Where does the curve flatten, and which resource is the limit? ___
+Predictions, worked out by hand on 2026-10-18 (compare against the real numbers; write what differed and why):
+- c=1 ITL: floor is 16 GB / 3.35 TB/s = 4.8 ms on H100 SXM (8 ms on PCIe at 2 TB/s). Real engines land above the floor.
+  Prediction: 6-8 ms (SXM) or 10-12 ms (PCIe). Real: ___
+- Logged KV cache size: (0.90 x 80 GB - 16 GB weights - about 4 GB overhead) / 128 KB per token = about 400k tokens.
+  Prediction: 350-450k. Real: ___
+- Throughput at c=128 vs c=1: c=1 is about 143 tok/s (1000 ms / 7 ms); c=128 is about 128 tokens per 22 ms step = about 5,800 tok/s.
+  Prediction: 25-50x. Real: ___
+- Curve shape: rises almost linearly while memory-bound, flattens when compute-bound. The H100 ridge point is
+  about 300 tokens per step (compute / bandwidth), so the knee should fall somewhere past c=100-300. Real: ___
 
 ## 7. Save results, then stop the bill
 ```bash

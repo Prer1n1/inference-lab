@@ -47,7 +47,10 @@ async def one_request(session, url, model, prompt, max_tokens):
 
 
 async def run(args):
-    rng = random.Random(args.seed)
+    # Fresh prompts per run and per concurrency level by default. A fixed seed would repeat prompts, and
+    # vLLM's prefix caching would then skip their prefill and inflate throughput. Pass --seed only to
+    # reproduce a run exactly (and then expect cache hits on repeats).
+    rng = random.Random(None if args.seed is None else args.seed * 1_000_003 + args.concurrency)
     prompts = [make_prompt(args.input_words, rng) for _ in range(args.num_requests)]
     sem = asyncio.Semaphore(args.concurrency)
     results, errors = [], 0
@@ -96,7 +99,7 @@ def main():
                     help="one or more levels; each runs a full sweep point")
     ap.add_argument("--input-words", type=int, default=256, help="~prompt length (words ~ 1.3 tokens)")
     ap.add_argument("--output-tokens", type=int, default=128)
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=None, help="omit for fresh random prompts (recommended)")
     ap.add_argument("--out", default="results/run.jsonl")
     args = ap.parse_args()
 

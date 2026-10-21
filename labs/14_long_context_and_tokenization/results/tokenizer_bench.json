@@ -1,0 +1,46 @@
+{
+  "tokenizer": "Qwen/Qwen2.5-0.5B",
+  "cpu_count": 16,
+  "chunks": 16,
+  "rows": [
+    {
+      "chars": 100000,
+      "tokens": 16826,
+      "chars_per_token": 5.94,
+      "encode_single_s": 0.1328,
+      "encode_single_tok_per_s": 126683,
+      "encode_parallel_s": 0.0318,
+      "parallel_speedup_x": 4.2,
+      "parallel_ids_identical": true,
+      "decode_s": 0.0147,
+      "prefill_estimate_s": 0.337,
+      "single_encode_pct_of_prefill": 39.5
+    },
+    {
+      "chars": 1000000,
+      "tokens": 167675,
+      "chars_per_token": 5.96,
+      "encode_single_s": 1.5341,
+      "encode_single_tok_per_s": 109298,
+      "encode_parallel_s": 0.314,
+      "parallel_speedup_x": 4.9,
+      "parallel_ids_identical": true,
+      "decode_s": 0.1508,
+      "prefill_estimate_s": 3.353,
+      "single_encode_pct_of_prefill": 45.7
+    },
+    {
+      "chars": 4000000,
+      "tokens": 669999,
+      "chars_per_token": 5.97,
+      "encode_single_s": 2.057,
+      "encode_single_tok_per_s": 325718,
+      "encode_parallel_s": 0.7646,
+      "parallel_speedup_x": 2.7,
+      "parallel_ids_identical": true,
+      "decode_s": 0.2493,
+      "prefill_estimate_s": 13.4,
+      "single_encode_pct_of_prefill": 15.4
+    }
+  ]
+}

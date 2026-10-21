@@ -1,4 +1,4 @@
-# Lab 16: upstream contribution
+# Lab 21: upstream contribution
 
 **Status:** Planned (start collecting candidates from Lab 01 onward)  
 **Baseten posting items:** "Contribute upstream to open-source inference engines (vLLM, SGLang, TensorRT-LLM)"  
@@ -7,7 +7,7 @@
 ## 1. The question
 Can I find, fix and land a real improvement in an inference engine?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 How open-source contribution works
 1. **Find** something real: a bug, a missing metric, unclear documentation, a missing test, a benchmark script, model support. The best candidates come from your own work in these labs.
@@ -31,7 +31,7 @@ vLLM (`vllm-project/vllm`), SGLang (`sgl-project/sglang`), TensorRT-LLM (`NVIDIA
 ### 2.4 Candidates already visible from these labs
 - A warning when the server's concurrency cap is below what a benchmark requests (a lesson from Lab 05), or documentation of the interaction between `max_num_seqs` and observed concurrency.
 - Documentation of benchmarking pitfalls (prefix-cache contamination from repeated prompts).
-- Anything that surprises you in Labs 06-11, such as a flag that behaves differently than documented.
+- Anything that surprises you in Labs 06-19, such as a flag that behaves differently than documented.
 
 ## 3. Predictions
 Before starting, write what you expect review to focus on and how long a first PR will take. Compare afterwards.
@@ -49,3 +49,8 @@ Before starting, write what you expect review to focus on and how long a first P
 2. How do you reproduce an engine bug minimally?
 3. How did you decide this change was worth proposing?
 4. How do you keep a performance-related PR credible?
+
+## Further reading
+- Open Source Guides: "How to Contribute to Open Source" (opensource.guide).
+- The CONTRIBUTING files of vLLM, SGLang and TensorRT-LLM.
+- Recently merged pull requests in the target repository (to learn the review style).

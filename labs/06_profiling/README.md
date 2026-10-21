@@ -7,7 +7,7 @@
 ## 1. The question
 Where does the time in one decode step and one prefill step actually go, how much of it is launch overhead, and what causes the p99 ITL spikes seen in Lab 05?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 What a "step" looks like on the hardware
 The CPU runs Python and queues **kernels** into a CUDA stream; the GPU executes them in order. Ideally the queue is always non-empty and the GPU is always busy. Two failure shapes:
@@ -56,7 +56,7 @@ GEMMs (the QKV/output/MLP matmuls; most of the time), attention (FlashAttention/
 5. **Reproduce a p99 spike** at 64 users with open-loop load and record per-request timestamps (harness), then match the slow gap to a trace window. *The cross-layer investigation.*
 6. **Fill the kernel table** (top kernels, share, idle) and compute MBU/MFU.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in using `templates/LAB_TEMPLATE.md`._ Known pitfalls: profiling slows the run (compare shapes, not absolute times); traces get huge (profile a short window); the first iterations include compilation.
 
 ## 9. Done when
@@ -69,3 +69,9 @@ _To fill in using `templates/LAB_TEMPLATE.md`._ Known pitfalls: profiling slows 
 2. A decode step is at 60% of the bandwidth floor. How do you find out why?
 3. How would you trace one slow request from the HTTP request down to the kernel?
 4. Why can `nvidia-smi` show 100% utilization while the GPU is badly underused?
+
+## Further reading
+- PyTorch Profiler documentation and tutorial.
+- NVIDIA Nsight Systems and Nsight Compute user guides.
+- CUDA C++ Programming Guide: the CUDA Graphs chapter.
+- Dao et al., "FlashAttention" (2022): what an optimized attention kernel looks like in a profile.

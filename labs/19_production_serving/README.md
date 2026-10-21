@@ -1,4 +1,4 @@
-# Lab 14: production serving, Kubernetes, autoscaling, observability
+# Lab 19: production serving, Kubernetes, autoscaling, observability
 
 **Status:** Planned  
 **Baseten posting items:** "large-scale distributed serving: autoscaling, load balancing, multi-region or multi-cloud capacity"; "operational excellence and incident response"; overlap with Baseten's Infrastructure and Observability roles (Kubernetes, Prometheus/Grafana/OpenTelemetry, SLOs)  
@@ -7,7 +7,7 @@
 ## 1. The question
 Can I serve the model reliably, scale it on demand, see what is happening, and prove it survives failure?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Containers and Kubernetes in five ideas
 - **Container image**: the server and its dependencies packaged to run identically anywhere.
@@ -36,6 +36,16 @@ Can I serve the model reliably, scale it on demand, see what is happening, and p
 ### 2.5 Reliability practice
 Failure drills (kill a pod, saturate the GPU, push a bad config) find weaknesses before customers do. After an incident: a **blameless post-mortem** with timeline, impact, root cause, what detected it, what fixed it, and follow-ups.
 
+### 2.6 Multi-region and multi-cloud capacity (design topic)
+Baseten's own posts describe managing capacity across several clouds. The issues a design document should address:
+- **Why**: GPU supply is scarce and uneven; a single provider or region may not have capacity when needed; customers have data-residency and latency needs; failures of a whole region must not take the service down.
+- **Capacity management**: a view of what each cloud and region has available, pricing and quotas; placing a deployment where capacity exists; **overflow** from a saturated region to another; reserved vs on-demand vs spot capacity and what each failure mode costs.
+- **Routing**: send users to the nearest healthy region; keep **prefix-cache locality** within a region (Lab 16); fail over without a thundering herd.
+- **Weights and artifacts**: model weights must be present near the GPUs; cold-start time is dominated by loading them, so replicate or cache weights per region and measure the loading time.
+- **Consistency of the platform**: the same container images, metrics and alerts everywhere, with per-region SLOs; provider differences in networking, GPU types (an H100 on one cloud is not identical to another) and observability.
+- **Failure scenarios** to analyse: region outage, provider quota exhaustion, a bad rollout in one region, a weights-store outage.
+Because a real multi-cloud deployment is outside this plan's budget, the deliverable is a **design document** with the decisions, the reasoning, the numbers you can measure cheaply (weight-loading time, cold-start time, cross-region latency) and the failure analysis. Say clearly which parts were measured and which were designed.
+
 ## 3. Predictions (fill in BEFORE running)
 | Quantity | Prediction | Real | Verdict |
 |---|---|---|---|
@@ -54,16 +64,25 @@ Failure drills (kill a pod, saturate the GPU, push a bad config) find weaknesses
 7. **Tracing** with OpenTelemetry across a thin gateway and the engine.
 8. **Failure drills** and a post-mortem for each.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: readiness that passes before the model is loaded; autoscaling on CPU; GPU nodes without taints grabbing non-GPU pods; metrics with high-cardinality labels; alerts on single spikes.
 
 ## 9. Done when
 - One-command deploy.
 - Dashboard screenshot and an SLO document.
 - A post-mortem of at least one injected failure.
+- A multi-region/multi-cloud design document (decisions, failure analysis, and the cold-start and weight-loading numbers you measured).
 
 ## 10. Interview questions
 1. Why is CPU a poor autoscaling signal for an LLM server?
 2. How would you set an alert on TTFT without paging on noise?
 3. Walk through what happens to in-flight requests when a pod is killed, and how you would reduce harm.
 4. How do you keep cold-start time down when scaling out?
+5. How would you design capacity management across several clouds, and what are the failure modes?
+
+## Further reading
+- Beyer et al., "Site Reliability Engineering" and "The Site Reliability Workbook": SLOs, error budgets, burn-rate alerts, post-mortems.
+- Kubernetes documentation: Deployments, probes, HPA, taints and tolerations.
+- KEDA documentation (event-driven autoscaling).
+- NVIDIA GPU Operator and DCGM exporter documentation.
+- Prometheus and OpenTelemetry documentation.

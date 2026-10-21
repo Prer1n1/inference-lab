@@ -1,4 +1,4 @@
-# Lab 11: cache-aware routing and prefill/decode disaggregation
+# Lab 16: cache-aware routing and prefill/decode disaggregation
 
 **Status:** Planned (flags and connector availability confirmed against the installed engine when we run it)  
 **Baseten posting items:** "cache-aware routing", "custom scheduling and routing algorithms", "prefill/decode disaggregation", "load balancing"  
@@ -7,7 +7,7 @@
 ## 1. The question
 Does routing by prompt-prefix affinity beat round-robin, and what does separating prefill from decode buy?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Why load balancing LLM traffic is different
 Classic web load balancing assumes requests cost about the same and replicas are interchangeable. Here:
@@ -52,7 +52,7 @@ Chunked prefill (Lab 08) reduces interference *within* one GPU at no network cos
 5. **Disaggregation prototype**: one prefill and one decode worker using the engine's KV-transfer support (confirm availability), vs two colocated replicas on the same hardware. *Equal GPU count is the only fair comparison.*
 6. **Write up** when each wins and why.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: benchmark traffic with no real prefix sharing; letting affinity pile hot prefixes on one replica; comparing at different GPU counts; ignoring router overhead and failure handling.
 
 ## 9. Done when
@@ -65,3 +65,9 @@ _To fill in._ Pitfalls: benchmark traffic with no real prefix sharing; letting a
 2. What has to move between a prefill and a decode worker, and how big is it?
 3. When is disaggregation not worth it?
 4. What signals would you use to route by load instead of request count?
+
+## Further reading
+- Zhong et al., the DistServe paper; Patel et al., the Splitwise paper.
+- Mirrokni, Thorup, Zadimoghaddam, "Consistent Hashing with Bounded Loads" (2016).
+- Mitzenmacher, "The Power of Two Choices in Randomized Load Balancing" (2001).
+- Zheng et al., the SGLang paper (cache-aware scheduling).

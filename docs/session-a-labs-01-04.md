@@ -4,7 +4,7 @@ Goal: run the four first-principles labs in one short session. About 2 hours of 
 
 ## Before you rent anything (laptop, free)
 1. `git push` so the pod can clone the latest code.
-2. Read the *Concepts* sections of Labs 01-04 and fill in each **Predictions** table. Do this *before* seeing any numbers.
+2. Read the *Mental model* sections of Labs 01-04 and fill in each **Predictions** table. Do this *before* seeing any numbers.
 3. Have your Hugging Face token ready (Llama is gated; it was approved on your account).
 4. Check your RunPod balance (about $30).
 

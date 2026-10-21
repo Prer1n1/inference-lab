@@ -1,4 +1,4 @@
-# Lab 13: new model bring-up, time-boxed
+# Lab 18: new model bring-up, time-boxed
 
 **Status:** Planned  
 **Baseten posting items:** "Help the team bring up and tune new model architectures on new hardware quickly, often in the same week they are released"  
@@ -7,7 +7,7 @@
 ## 1. The question
 How fast can I take a newly released architecture from "does not run" to "tuned and benchmarked", and what checklist makes the next one faster?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 What can be new about a model
 | Component | Variants you will meet | Why it matters for serving |
@@ -53,7 +53,7 @@ New GPU generations bring new precisions (FP8, FP4), new instructions, and a sof
 6. **Second GPU type** (the "new hardware" analogue): rerun the benchmark; note what changed.
 7. **Distill a checklist** of the steps that cost time, for the next model.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: trusting "it generates fluent text" as proof of correctness; benchmarking before correctness is verified; unpinned library versions; tuning before a baseline exists.
 
 ## 9. Done when
@@ -66,3 +66,8 @@ _To fill in._ Pitfalls: trusting "it generates fluent text" as proof of correctn
 2. How does an MoE model change the memory-vs-compute picture?
 3. What would you automate to cut bring-up from days to hours?
 4. How do you verify numerical correctness of a port without a ground-truth output?
+
+## Further reading
+- The engine's documentation on adding a new model (vLLM and SGLang contributor guides).
+- Hugging Face Transformers guides on model implementation and checkpoint conversion.
+- Lab 12 and Lab 13 for the MoE and parallelism background that new frontier models rely on.

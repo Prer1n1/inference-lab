@@ -7,7 +7,7 @@
 ## 1. The question
 How much memory does each token of context cost, how does that limit how many users fit, and what does the cache buy in speed?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Attention in one paragraph
 Each transformer layer turns every token into three vectors: a **query (Q)**, a **key (K)** and a **value (V)**. To produce the next token, the new token's query is compared with the keys of *all earlier tokens* to get weights, and those weights mix the earlier tokens' values. Keys and values of past tokens never change once computed.
@@ -64,7 +64,7 @@ _To fill in._
 ## 6. Interpretation
 _To fill in: does the measured size match the formula, and by how much does it differ (padding, allocator rounding)? Does the speedup from the cache grow with prompt length? Why?_
 
-## 7. Production takeaway
+## 7. Engineering takeaway
 _To fill in._ Hint: KV capacity, not compute, usually decides how many users fit on a GPU. Which levers raise it (FP8 cache, GQA, paging, prefix reuse, shorter max length)?
 
 ## 8. Pitfalls to watch
@@ -76,3 +76,9 @@ _To fill in._ Hint: KV capacity, not compute, usually decides how many users fit
 2. A GPU has 80 GB and the model is 16 GB. Roughly how many 4k-token conversations fit?
 3. Why does PagedAttention help even when total memory is unchanged?
 4. Why can prefix caching only reuse full blocks, and what does that mean for prompt design?
+
+## Further reading
+- Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention" (SOSP 2023).
+- Ainslie et al., "GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints" (2023).
+- Shazeer, "Fast Transformer Decoding: One Write-Head Is All You Need" (2019), multi-query attention.
+- Kipply, "Transformer Inference Arithmetic" (blog).

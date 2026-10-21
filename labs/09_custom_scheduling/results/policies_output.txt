@@ -1,0 +1,18 @@
+
+arrival rate 16/s
+  fcfs        tok/s  2832.3  chat TTFT p50/p99     149/   1464 ms   batch E2E p99    31043 ms
+  sjf_prompt  tok/s  2832.3  chat TTFT p50/p99     128/   1433 ms   batch E2E p99    31043 ms
+  sjf_oracle  tok/s  2832.3  chat TTFT p50/p99     128/   1433 ms   batch E2E p99    31043 ms
+  priority    tok/s  2832.3  chat TTFT p50/p99     133/   1433 ms   batch E2E p99    31043 ms
+
+arrival rate 20/s
+  fcfs        tok/s  3344.8  chat TTFT p50/p99    3723/   7615 ms   batch E2E p99    71641 ms
+  sjf_prompt  tok/s  3343.2  chat TTFT p50/p99     256/   1396 ms   batch E2E p99    90851 ms
+  sjf_oracle  tok/s  3307.0  chat TTFT p50/p99     282/   1401 ms   batch E2E p99    87870 ms
+  priority    tok/s  3342.9  chat TTFT p50/p99     285/   1451 ms   batch E2E p99    72316 ms
+
+arrival rate 30/s
+  fcfs        tok/s  3445.0  chat TTFT p50/p99   23431/  51188 ms   batch E2E p99    85747 ms
+  sjf_prompt  tok/s  3330.7  chat TTFT p50/p99     251/   1688 ms   batch E2E p99   139336 ms
+  sjf_oracle  tok/s  3305.3  chat TTFT p50/p99     252/   1375 ms   batch E2E p99   139623 ms
+  priority    tok/s  3403.9  chat TTFT p50/p99     346/   1224 ms   batch E2E p99    94209 ms

@@ -1,13 +1,13 @@
-# Lab 15: capacity and cost report
+# Lab 20: capacity and cost report
 
 **Status:** Planned (no GPU needed)  
 **Baseten posting items:** "Turn performance wins into measurable outcomes: tokens per GPU-hour, utilization, latency and cost"; "give customers and internal teams clear latency/throughput/cost tradeoffs"  
-**Needs:** your measured results from Labs 05-11 · **Depends on:** Labs 05-11
+**Needs:** your measured results from Labs 05-19 · **Depends on:** Labs 05-19
 
 ## 1. The question
 Given a workload and a latency SLA, which configuration is cheapest and how many GPUs does it need?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Unit economics
 ```
@@ -45,7 +45,7 @@ Recommendations depend on assumptions. Show what changes if prompts are twice as
 4. **Sensitivity analysis** over the assumptions in 2.5.
 5. **Write a one-page customer-style report**: recommendation, cost, risks, what was measured vs assumed.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: using peak instead of goodput; extrapolating beyond measured loads; mixing numbers from runs with different prompts; ignoring prefill cost; hiding the assumptions.
 
 ## 9. Done when
@@ -57,3 +57,8 @@ _To fill in._ Pitfalls: using peak instead of goodput; extrapolating beyond meas
 2. Why is goodput a better headline number than peak tokens/s?
 3. What would make your recommendation wrong?
 4. Why are output tokens usually priced above input tokens?
+
+## Further reading
+- J. D. C. Little, "A Proof for the Queuing Formula L = λW" (1961).
+- Any capacity-planning text on utilization, headroom and tail latency.
+- Pricing pages of inference providers (for how input and output tokens are priced differently).

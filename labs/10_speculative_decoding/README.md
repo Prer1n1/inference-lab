@@ -1,4 +1,4 @@
-# Lab 09: speculative decoding
+# Lab 10: speculative decoding
 
 **Status:** Planned (flags confirmed against the installed vLLM version when we run it)  
 **Baseten posting items:** "speculative decoding" (implement and productionize; also in production); example initiative "Live draft model training for speculative decoding"  
@@ -7,7 +7,7 @@
 ## 1. The question
 When does speculative decoding speed up decode, and when does it hurt?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 The idea
 Decode is memory-bound: verifying several tokens in one forward pass costs almost the same as producing one (the weights are read once either way). So let something *cheap* guess the next `k` tokens, then have the big (**target**) model check all `k` guesses in a single pass.
@@ -59,7 +59,7 @@ How well the draft matches the target *on your traffic*: code, JSON and template
 5. **Two workload types**: high acceptance (code/JSON/repetitive) and low (open chat). Read acceptance rate from the server's metrics.
 6. **Fit the formula** from 2.3 to your measured acceptance rates and see how close the measured speedup is.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: benchmarking speculation with random-word prompts (acceptance is meaningless); judging by chunk-gap ITL; ignoring the draft's memory and compute cost; evaluating only at batch 1 when production runs at higher load.
 
 ## 9. Done when

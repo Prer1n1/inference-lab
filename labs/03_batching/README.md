@@ -7,7 +7,7 @@
 ## 1. The question
 Why does serving more sequences at once raise total throughput so much, what stops it, and what does a longer context do?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 The batching idea
 One decode step reads all the weights. If B sequences share the step, the weight bytes are read once but B tokens come out. While the step is memory-bound (arithmetic intensity ≈ B, far below the ridge, Lab 01), step time stays nearly flat and **throughput grows almost linearly with B**.
@@ -53,7 +53,7 @@ _To fill in. Plot decode tokens/s against batch size, one line per context lengt
 ## 6. Interpretation
 _To fill in: where does scaling bend, and is that compute, KV bytes or something else? What evidence distinguishes them (peak memory, step time vs the formula in 2.2)?_
 
-## 7. Production takeaway
+## 7. Engineering takeaway
 _To fill in._ Hint: why static batching wastes capacity, what continuous batching changes, and what that implies for the throughput numbers in Lab 05.
 
 ## 8. Pitfalls to watch
@@ -66,3 +66,8 @@ _To fill in._ Hint: why static batching wastes capacity, what continuous batchin
 2. What limits batch size on a given GPU, and how would you compute it?
 3. What is the difference between static and continuous batching, and why does it matter for tail latency?
 4. Why does a longer context slow every decode step even though the weights are unchanged?
+
+## Further reading
+- Yu et al., "Orca: A Distributed Serving System for Transformer-Based Generative Models" (OSDI 2022).
+- Pope et al., "Efficiently Scaling Transformer Inference" (2022).
+- Kipply, "Transformer Inference Arithmetic" (blog).

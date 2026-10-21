@@ -1,4 +1,4 @@
-# Lab 10: structured output and multi-LoRA serving
+# Lab 11: structured output and multi-LoRA serving
 
 **Status:** Planned (flags confirmed against the installed vLLM version when we run it)  
 **Baseten posting items:** "LoRA", "guided generation for structured outputs"  
@@ -7,7 +7,7 @@
 ## 1. The question
 What do JSON-schema guided decoding and serving many LoRA adapters cost in latency and throughput?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Guided (constrained) decoding
 Goal: the model's output must follow a grammar, such as valid JSON matching a schema, a regex, or a choice among options.
@@ -38,7 +38,7 @@ Many customers each have an adapter; one base model in memory serves them all. R
 3. **LoRA**: serve the base with 1, 4 and 16 adapters (rank 16), send traffic that mixes adapters evenly, compare with base-only. *Finds the overhead and the point where it hurts.*
 4. **Adapter churn**: more adapters than `max_loras` to force eviction. *Shows the miss penalty.*
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: testing only one trivial schema; ignoring prompt design (the model should be told the format too, or quality suffers); using identical adapters (no realistic mixing); rank and target modules change cost.
 
 ## 9. Done when
@@ -50,3 +50,9 @@ _To fill in._ Pitfalls: testing only one trivial schema; ignoring prompt design 
 2. Why can many LoRA adapters share one base model's batch?
 3. What breaks first as the adapter count grows?
 4. When would you merge a LoRA into the base weights?
+
+## Further reading
+- Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models" (2021).
+- Sheng et al., "S-LoRA: Serving Thousands of Concurrent LoRA Adapters" (2023).
+- Chen et al., "Punica: Multi-Tenant LoRA Serving" (2023).
+- Willard and Louf, "Efficient Guided Generation for Large Language Models" (2023), the Outlines approach; the xgrammar project documentation.

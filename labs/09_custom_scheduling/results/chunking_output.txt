@@ -1,0 +1,4 @@
+Open loop, mixed workload (80% chat, 20% long-prompt batch), FCFS, token budget 2048
+
+{'label': 'chunked=False', 'n': 3000, 'tok_s': 2140.6, 'ttft_p50': 72.2, 'ttft_p99': 729.6, 'tpot_p50': 14.62, 'tpot_p99': 54.36, 'e2e_p50': 2083, 'e2e_p99': 14236, 'chat_tpot_p99': 57.12}
+{'label': 'chunked=True', 'n': 3000, 'tok_s': 2140.9, 'ttft_p50': 80.0, 'ttft_p99': 769.5, 'tpot_p50': 12.91, 'tpot_p99': 44.23, 'e2e_p50': 1840, 'e2e_p99': 12733, 'chat_tpot_p99': 47.21}

@@ -1,0 +1,16 @@
+{
+  "out": "results/matrix.jsonl",
+  "servers": [
+    {"name": "bf16",
+     "cmd": ["vllm", "serve", "meta-llama/Llama-3.1-8B-Instruct", "--max-model-len", "8192",
+             "--gpu-memory-utilization", "0.90", "--port", "8000"],
+     "url": "http://localhost:8000", "model": "meta-llama/Llama-3.1-8B-Instruct", "ready_timeout_s": 900}
+  ],
+  "workloads": [
+    {"name": "chat-c16-64", "args": ["--num-requests", "512", "--concurrency", "16", "64",
+                                     "--input-words", "256", "--output-tokens", "128"]},
+    {"name": "long-prompt", "args": ["--num-requests", "128", "--concurrency", "8",
+                                      "--input-words", "2000", "--output-tokens", "64"]}
+  ],
+  "bench_args": ["--warmup", "8"]
+}

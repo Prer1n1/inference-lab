@@ -1,0 +1,28 @@
+
+Qwen/Qwen1.5-MoE-A2.7B: layers 24, hidden 2048, experts 60, top-4, shared-expert params/layer 34.6M
+  total params 14.32B   active params/token 2.69B   active share 18.8%
+  weights in BF16: 26.7 GiB (all experts must be resident)
+  batch  experts touched/layer  bytes read/step (GB)  floor ms  ceiling tok/s
+      1            4.0 of 60                      5.4      1.61            623
+      2            7.7 of 60                      6.9      2.07            967
+      4           14.5 of 60                      9.7      2.90           1378
+      8           25.5 of 60                     14.3      4.26           1876
+     16           40.1 of 60                     20.4      6.08           2631
+     32           53.4 of 60                     25.9      7.73           4140
+     64           59.3 of 60                     28.3      8.46           7568
+    128           60.0 of 60                     28.6      8.55          14979
+  (a dense model of the same TOTAL size would have a floor of 8.55 ms at every batch size)
+
+mistralai/Mixtral-8x7B-v0.1: layers 32, hidden 4096, experts 8, top-2, shared-expert params/layer 0.0M
+  total params 46.70B   active params/token 12.88B   active share 27.6%
+  weights in BF16: 87.0 GiB (all experts must be resident)
+  batch  experts touched/layer  bytes read/step (GB)  floor ms  ceiling tok/s
+      1            2.0 of 8                      25.8      7.69            130
+      2            3.5 of 8                      42.7     12.74            157
+      4            5.5 of 8                      64.9     19.36            207
+      8            7.2 of 8                      84.4     25.19            318
+     16            7.9 of 8                      92.5     27.61            579
+     32            8.0 of 8                      93.4     27.88           1148
+     64            8.0 of 8                      93.4     27.88           2295
+    128            8.0 of 8                      93.4     27.88           4591
+  (a dense model of the same TOTAL size would have a floor of 27.88 ms at every batch size)

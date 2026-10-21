@@ -8,7 +8,8 @@ Written from the Lab 05 session, including the things that went wrong. Pods are 
 - Push all code: the pod clones from GitHub.
 
 ## Choosing hardware
-- Labs 01-04, 10-12, 14: an inexpensive GPU is enough. Lab 07 (FP8) needs Hopper or Ada. Heavy engine labs (05-09, 13): H100.
+- Labs 01-04, 11, 16, 17, 19: an inexpensive GPU is enough (Lab 17 needs any NVIDIA GPU). Lab 07 (FP8) needs Hopper or Ada. Engine labs (05-10, 15, 18): H100. Lab 13 needs 2+ GPUs (ideally one run with NVLink, one without).
+- Labs 09 (Part A), 12 (Part A), 14 (Part A), 20 and 21 need no GPU.
 - Check the listing says **SXM** (3.35 TB/s) vs **PCIe** (about 2 TB/s); decode speed scales with memory bandwidth.
 - Add storage before deploying: container disk 50 GB, plus a **global volume** mounted at `/workspace` (keeps the model download across pods).
 

@@ -7,7 +7,7 @@
 ## 1. The question
 What can this GPU actually do per second, in bytes moved and in arithmetic done, and which of the two limits a given workload?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 What is inside a GPU
 - **SM (streaming multiprocessor)**: the unit that runs work. An H100 SXM has 132 of them. Each SM has its own registers, a small fast **shared memory** (programmer-managed scratchpad), and execution units.
@@ -80,7 +80,7 @@ _To fill in. Record GPU name, driver, CUDA, torch version, the two measured ceil
 ## 6. Interpretation
 _To fill in: is the ridge point far above decode's arithmetic intensity (about 1) and below prefill's (about the number of prompt tokens)? Which of your measured numbers is closer to its spec, and why might the other one not be?_
 
-## 7. Production takeaway
+## 7. Engineering takeaway
 _To fill in._ Hint: the floors computed here are the best decode speed a quantization or batching change can aim for on this GPU, and the ridge point tells you roughly how large a batch you need before adding users stops being free.
 
 ## 8. Pitfalls to watch
@@ -93,3 +93,9 @@ _To fill in._ Hint: the floors computed here are the best decode speed a quantiz
 2. Why can `nvidia-smi` show 70 GB used when the model weights are 16 GB?
 3. Given a GPU's bandwidth and a model's size, what is the fastest one user can possibly decode? What would change that?
 4. Why do SMs switch between warps while one waits on memory?
+
+## Further reading
+- Horace He, "Making Deep Learning Go Brrrr From First Principles" (memory-bound vs compute-bound reasoning).
+- Williams, Waterman, Patterson, "Roofline: An Insightful Visual Performance Model for Multicore Architectures" (2009).
+- NVIDIA H100 datasheet and architecture whitepaper (SMs, tensor cores, HBM, NVLink).
+- CUDA C++ Programming Guide: programming model and memory hierarchy chapters.

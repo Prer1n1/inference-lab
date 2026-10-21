@@ -94,6 +94,36 @@ def test_open_loop_and_goodput():
     assert r["goodput_frac"] == 0.0, r  # impossible TTFT target, nothing is good
 
 
+def test_matrix_runner_sweeps_servers_and_workloads():
+    cfg = {"out": os.path.join(tempfile.mkdtemp(), "m.jsonl"),
+           "servers": [
+               {"name": "k1", "cmd": [PY, os.path.join(ROOT, "bench", "mock_server.py"), "--port", "8151"],
+                "url": "http://localhost:8151", "model": "mock", "ready_timeout_s": 30},
+               {"name": "k4", "cmd": [PY, os.path.join(ROOT, "bench", "mock_server.py"), "--port", "8152",
+                                      "--tokens-per-chunk", "4"],
+                "url": "http://localhost:8152", "model": "mock", "ready_timeout_s": 30}],
+           "workloads": [{"name": "a", "args": ["--num-requests", "6", "--concurrency", "2", "--output-tokens", "8",
+                                                 "--input-words", "32"]},
+                         {"name": "b", "args": ["--num-requests", "6", "--concurrency", "3", "--output-tokens", "8",
+                                                 "--input-words", "32"]}],
+           "bench_args": ["--warmup", "0", "--no-gpu-telemetry"]}
+    path = os.path.join(tempfile.mkdtemp(), "cfg.json")
+    json.dump(cfg, open(path, "w"))
+    p = subprocess.run([PY, os.path.join(ROOT, "bench", "run_matrix.py"), path], capture_output=True, text=True, timeout=300)
+    assert p.returncode == 0, p.stderr
+    rows = [json.loads(line) for line in open(cfg["out"])]
+    assert sorted(r["label"] for r in rows) == ["k1/a", "k1/b", "k4/a", "k4/b"], [r["label"] for r in rows]
+    assert all(r["chunk_mismatch_reqs"] == (6 if r["label"].startswith("k4") else 0) for r in rows), rows
+    for port in (8151, 8152):   # servers were stopped
+        try:
+            urllib.request.urlopen(f"http://localhost:{port}/version", timeout=1)
+            raise AssertionError(f"server on {port} still running")
+        except AssertionError:
+            raise
+        except Exception:
+            pass
+
+
 def test_warns_when_server_sees_less_load_than_requested():
     sys.path.insert(0, os.path.join(ROOT, "bench"))
     import bench as b

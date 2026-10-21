@@ -7,7 +7,7 @@
 ## 1. The question
 Prefill and decode run the same model but are limited by different resources. How far is each from its hardware limit, and what does that mean for a mixed workload?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Two phases of one request
 1. **Prefill**: the model processes all `L` prompt tokens in one forward pass and fills the KV cache. It determines **TTFT** (time to first token), together with any queueing.
@@ -30,7 +30,7 @@ A small model on a fast GPU is *more* launch-bound than a big one, because less 
 ### 2.5 Interference in a shared GPU
 If one engine runs both phases, a long prefill occupies the GPU and delays every other user's next decode step: a tail-latency spike for them. Two families of fix:
 - **Chunked prefill**: split the prompt into chunks and run each chunk *alongside* other users' decode tokens in the same step (Lab 08).
-- **Prefill/decode disaggregation**: run prefill and decode on *separate* GPUs or pools, each tuned for its own bottleneck, and ship the KV cache between them (Lab 11).
+- **Prefill/decode disaggregation**: run prefill and decode on *separate* GPUs or pools, each tuned for its own bottleneck, and ship the KV cache between them (Lab 16).
 
 ## 3. Predictions (fill in BEFORE running)
 | Quantity | Prediction | Real | Verdict |
@@ -57,8 +57,8 @@ _To fill in._
 ## 6. Interpretation
 _To fill in. Compare with Lab 05: given a prompt-heavy workload, how much GPU time is prefill, and does that explain the p99 ITL spikes seen there?_
 
-## 7. Production takeaway
-_To fill in._ Hint: this is the analysis behind chunked prefill (Lab 08) and disaggregation (Lab 11).
+## 7. Engineering takeaway
+_To fill in._ Hint: this is the analysis behind chunked prefill (Lab 08) and disaggregation (Lab 16).
 
 ## 8. Pitfalls to watch
 - Prefill timing must exclude one-time costs (the script warms up).
@@ -70,3 +70,8 @@ _To fill in._ Hint: this is the analysis behind chunked prefill (Lab 08) and dis
 2. Why does a long prompt hurt other users' latency on a shared GPU, and name two fixes.
 3. If a profile shows decode at 40% of the bandwidth floor, what are your first three suspects?
 4. Define MFU and MBU. Which one is the right yardstick for decode?
+
+## Further reading
+- Patel et al., "Splitwise: Efficient Generative LLM Inference Using Phase Splitting" (2023).
+- Zhong et al., "DistServe: Disaggregating Prefill and Decoding for Goodput-Optimized LLM Serving" (OSDI 2024).
+- Agrawal et al., "Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve" (OSDI 2024).

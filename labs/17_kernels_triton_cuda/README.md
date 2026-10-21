@@ -1,4 +1,4 @@
-# Lab 12: a Triton kernel against the roofline
+# Lab 17: GPU kernels in Triton, CUDA C++ and CUTLASS, against the roofline
 
 **Status:** Planned  
 **Baseten posting items:** "GPU kernels (CUDA, Triton, CUTLASS, or similar)"; deep understanding of GPU architecture; "Agentic Kernels in Production" (example initiative)  
@@ -7,7 +7,7 @@
 ## 1. The question
 Can I write a kernel that matches or beats PyTorch on an inference operation, and explain the result with the roofline?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 Why write kernels at all
 Most small operations in a transformer (normalization, residual add, rotary embedding, activation, sampling) are **memory-bound**: they read a tensor, do trivial math, and write a tensor. Run as separate PyTorch operations, each one makes a round trip to HBM. **Fusing** them into one kernel reads the data once, does all the math in registers, and writes once. The speedup is roughly the reduction in bytes moved.
@@ -31,6 +31,16 @@ Decode's matmul is a **matrix-vector** product (batch 1). It is memory-bound, so
 - **Benchmark honestly**: warm up, synchronize, sweep sizes, compare with PyTorch eager and `torch.compile` (which may already fuse these ops).
 - Why a kernel stays slow: low occupancy, uncoalesced access, too-small blocks, register spills, launch overhead on tiny inputs.
 
+### 2.6 CUDA C++ (the layer below Triton)
+- **Execution model**: a kernel is launched over a **grid** of **thread blocks**; each block has up to 1,024 threads, grouped in **warps** of 32 that run in lockstep. A block runs on one SM and its threads can cooperate through **shared memory** and `__syncthreads()`.
+- **Memory access**: threads in a warp should read consecutive addresses (**coalescing**) so the hardware merges them into few memory transactions; strided access wastes bandwidth.
+- **Occupancy**: how many warps are resident per SM, limited by registers and shared memory per block; enough warps hide memory latency.
+- **The tile idea**: load a tile of the inputs into shared memory once, reuse it many times from fast memory. This is how matrix multiplication gets from memory-bound to compute-bound.
+- Triton generates this kind of code for you; writing CUDA directly gives control over what the compiler would otherwise decide, at much higher effort.
+
+### 2.7 CUTLASS
+A C++ template library of **building blocks for matrix multiplication** on NVIDIA GPUs: threadblock tile shapes, warp-level tensor-core operations, software pipelining of memory loads, and **epilogues** (fused operations on the output, such as bias, activation or quantization). Production GEMM and attention kernels in inference engines are often CUTLASS-based. You do not need to write one from scratch to be effective: you need to **read one, understand what the tile-shape and pipeline-stage parameters trade off, and run a profile** of a GEMM at the shapes decode and prefill actually use (skinny for decode, large for prefill).
+
 ## 3. Predictions (fill in BEFORE running)
 | Quantity | Prediction | Real | Verdict |
 |---|---|---|---|
@@ -47,15 +57,27 @@ Decode's matmul is a **matrix-vector** product (batch 1). It is memory-bound, so
 5. **Second kernel**: weight-only INT8/FP8 dequantize-GEMV (or fused softmax), same procedure.
 6. **Write one paragraph** explaining where each kernel sits relative to the roofline and what still limits it.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+7. **CUDA C++ kernels** (compile with `nvcc`): (a) vector add, (b) a block-level sum reduction using shared memory and `__syncthreads()`, (c) matrix multiply: naive, then shared-memory tiled. Time each against PyTorch/cuBLAS and report achieved GB/s (a, b) and TFLOP/s (c) against the Lab 01 ceilings. *Shows exactly what tiling buys and how far hand-written code sits from the library.*
+8. **Read a CUTLASS GEMM example**: identify threadblock tile, warp tile and pipeline stages; change the tile shape and re-run at a decode-shaped (M small) and a prefill-shaped (M large) problem; record which shape wins for which and why. *Builds fluency with the library behind production kernels.*
+
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: benchmarking without synchronization; testing only power-of-two sizes; comparing against an unfused baseline that `torch.compile` would already fuse; forgetting FP32 accumulation.
 
 ## 9. Done when
 - Kernel code, tests and a bandwidth-vs-size plot.
 - A paragraph explaining where the kernel is memory-bound and what limits it.
+- Working CUDA C++ kernels (reduction and tiled matmul) with timings against cuBLAS, and a short note on how tile shape changes CUTLASS GEMM performance at decode-shaped vs prefill-shaped sizes.
 
 ## 10. Interview questions
 1. Why is fusing elementwise ops with a norm a win?
+2. What is memory coalescing, and what does a strided access pattern cost?
+3. Why does a shared-memory tile make matrix multiply faster, and what limits the tile size?
 2. How do you know whether a kernel is memory- or compute-bound?
 3. What does tile size trade off in a matmul kernel?
 4. How would you decide between Triton, CUDA and CUTLASS for a new kernel?
+
+## Further reading
+- Tillet, Kung, Cox, "Triton: An Intermediate Language and Compiler for Tiled Neural Network Computations" (2019) and the official Triton tutorials.
+- CUDA C++ Programming Guide and Best Practices Guide.
+- CUTLASS documentation and the "CUTLASS: Fast Linear Algebra in CUDA C++" overview.
+- Kirk and Hwu, "Programming Massively Parallel Processors" (textbook).

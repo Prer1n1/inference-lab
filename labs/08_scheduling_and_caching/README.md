@@ -7,7 +7,7 @@
 ## 1. The question
 Do chunked prefill, the per-step token budget and prefix caching tame the tail-latency spikes and lower cost, and by how much?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 The scheduler loop
 Every step the scheduler:
@@ -49,7 +49,7 @@ p99 ITL rose from 7 ms to 17 ms (64 users) to 36-77 ms (about 100 users) while t
 5. **Reproduce the contamination deliberately** (same seed twice) and explain the numbers.
 6. **Probe `max_num_seqs`**: confirm via the harness's server-side gauge where the ceiling really is.
 
-## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+## 5. Results, 6. Interpretation, 7. Engineering takeaway, 8. Pitfalls
 _To fill in._ Pitfalls: measuring the cache with prompts that do not share *full blocks*; comparing configs at different offered loads; forgetting that eviction can erase a cache you assumed warm.
 
 ## 9. Done when
@@ -62,3 +62,8 @@ _To fill in._ Pitfalls: measuring the cache with prompts that do not share *full
 2. Prefix caching gave a 30% win in a benchmark. How do you tell whether production traffic would see it?
 3. What does `max_num_batched_tokens` trade off?
 4. What happens when the KV cache fills, and which policy choices exist?
+
+## Further reading
+- Agrawal et al., the Sarathi-Serve paper (chunked prefill, stall-free scheduling).
+- Zheng et al., "SGLang: Efficient Execution of Structured Language Model Programs" (2023): RadixAttention prefix reuse.
+- vLLM documentation on automatic prefix caching and the scheduler's configuration options.

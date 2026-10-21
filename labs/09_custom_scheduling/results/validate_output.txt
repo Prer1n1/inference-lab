@@ -1,0 +1,10 @@
+Calibration: base_ms from 1 user, per_seq_ms from ITL at ~100 users, prefill cost fitted to 64-user throughput.
+fitted prefill_ms_per_token = 0.02
+
+ users  measured tok/s  simulated tok/s   error   (fitted on 1 and 64; the others are held out)
+     1             160              164   +2.3%  (fitted)
+     8            1157             1213   +4.9%
+    16            2121             2161   +1.9%
+    32            3676             3853   +4.8%
+    64            5866             6047   +3.1%  (fitted)
+   100            7056             7606   +7.8%

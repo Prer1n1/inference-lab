@@ -7,7 +7,7 @@
 ## 1. The question
 On one H100, how does output throughput, latency and cost per token change as more users share the GPU, and where does it stop improving?
 
-## 2. Concepts
+## 2. Mental model
 
 ### 2.1 What a serving engine is
 A request passes through: **HTTP API server → tokenizer → scheduler → model runner (GPU) → detokenizer → streamed response**.
@@ -115,7 +115,7 @@ Re-run plan: `RUNBOOK.md`.
 5. **Single-user decode is at 79% of the bandwidth floor** (6.05 ms vs 4.8 ms). Remaining gap: KV reads, launch overhead, sampling, scheduling (Lab 06 will quantify).
 6. **Hypothesis, unconfirmed:** the p99 ITL spikes come from prefill work sharing steps with decode. Tested in Lab 08 (chunked prefill).
 
-## 7. Production takeaway
+## 7. Engineering takeaway
 Run this model at the highest load that still meets the latency target, not at the highest load the GPU tolerates. On this workload
 that is roughly 64 concurrent users per H100 and about $0.19 per million output tokens (output tokens only; prompt processing also uses GPU time).
 
@@ -125,7 +125,18 @@ that is roughly 64 concurrent users per H100 and about $0.19 per million output 
 3. **p99 over few samples is noisy.** Report ranges across repeats.
 4. **Token counts came from streamed chunks, never checked against the server's usage field.** Matches in this run (ITL and E2E arithmetic agree) but breaks under speculative decoding; the new harness reads usage.
 
+### Tooling built from this lab
+- `bench/bench.py`: closed- and open-loop load, goodput, usage-based token counts, server-side load check, GPU telemetry, run metadata.
+- `bench/run_matrix.py`: starts each server configuration, runs every workload, stops the server, and appends everything to one JSONL file (config example: `bench/matrix.example.json`). Labs 07-15 use it to sweep quantization formats, scheduler flags, engines and models mechanically.
+- `tests/test_harness.py`: guards against the bugs found here (connection cap, chunk/token confusion).
+
 ## 9. Interview questions
 1. Why does throughput grow ~44× while the per-token time barely changes?
 2. Your benchmark says throughput stops at 128 users. How would you check that is the server's limit and not the load generator's?
 3. Two runs of the same benchmark disagree by 25%. What are your first three suspects, and how do you test each?
+
+## Further reading
+- Kwon et al., the vLLM paper (SOSP 2023).
+- Schroeder, Wierman, Harchol-Balter, "Open Versus Closed: A Cautionary Tale" (NSDI 2006): why closed-loop benchmarks hide queueing behavior.
+- Any queueing-theory primer covering Little's law and utilization-vs-latency curves.
+- The vLLM documentation on serving, metrics and the OpenAI-compatible server.

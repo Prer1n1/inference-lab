@@ -71,6 +71,11 @@ python -m venv .venv && .venv\Scripts\pip install -r requirements.txt      # Lin
 ```
 Against a real server, point `--url` and `--model` at it. See `python bench/bench.py --help` for load models, SLO goodput, shared-prefix and output-length options.
 
+## Where to start
+1. [docs/study-plan.md](docs/study-plan.md): the order of work, costs and rules.
+2. [labs/00_concepts](labs/00_concepts), then the *Concepts* section of each lab. Every lab README is a lesson: concepts, predictions, step-by-step experiment with reasons, interpretation, interview questions.
+3. [docs/session-a-labs-01-04.md](docs/session-a-labs-01-04.md): the exact commands for the next GPU session.
+
 ## Running on a GPU
 Follow [docs/pod-workflow.md](docs/pod-workflow.md). Labs 01-04 use `requirements-labs.txt`; vLLM labs use a separate environment (`requirements-vllm.txt`).
 GitHub is the source of truth: edit locally, push, pull on the pod, run, copy results back, **terminate the pod**.

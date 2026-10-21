@@ -7,9 +7,44 @@
 ## 1. The question
 On one H100, how does output throughput, latency and cost per token change as more users share the GPU, and where does it stop improving?
 
-## 2. Mental model
-Decode is memory-bound, so extra users sharing a step are nearly free until the GPU's math units or the KV cache run out
-(see `labs/00_concepts`). Prefill adds compute-heavy work that competes with decode. Cost per token = $/hour ÷ tokens/hour.
+## 2. Concepts
+
+### 2.1 What a serving engine is
+A request passes through: **HTTP API server → tokenizer → scheduler → model runner (GPU) → detokenizer → streamed response**.
+The part that matters for performance is the **scheduler**. Every step (about 6-8 ms here) it decides which requests run: all
+currently-decoding sequences, plus waiting requests whose prompts it can start, subject to limits:
+- `max_num_seqs`: the most sequences in one step.
+- `max_num_batched_tokens`: the most tokens (prefill chunks + one per decoding sequence) in one step.
+- KV-cache blocks: a request cannot start unless blocks exist for its prompt.
+Requests beyond these limits wait in a queue; that waiting is part of TTFT.
+
+### 2.2 Continuous batching (Lab 03, §2.4)
+Finished sequences leave and waiting ones join at every step, so the batch stays full. Combined with PagedAttention (Lab 02, §2.6)
+this is what lets one GPU serve dozens to hundreds of users.
+
+### 2.3 Metrics, precisely
+| Metric | Definition | Driven by |
+|---|---|---|
+| TTFT | request sent → first token | queueing + prefill |
+| ITL | gap between consecutive streamed chunks | decode step time under load |
+| TPOT | (E2E − TTFT) ÷ (output tokens − 1) | mean decode speed one user sees |
+| E2E | request sent → last token | TTFT + (n − 1) × TPOT |
+| Throughput | output tokens/s across all users | batch size, bandwidth |
+| Goodput | throughput of requests that met the latency targets | what customers actually get |
+Always report p50 **and** p99: the median is the typical user, p99 is the unlucky one.
+
+### 2.4 Load generation: closed vs open loop, and Little's law
+- **Closed loop** (this lab): a fixed number N of users, each sending the next request when the last finishes. Simple, but the load adapts to the server, so it cannot show collapse.
+- **Open loop**: requests arrive at a rate regardless of completions (Poisson arrivals). If the rate exceeds capacity, queues grow without bound: the true failure mode of a production service.
+- **Little's law**: average requests in the system = arrival rate × average time in the system (`L = λ·W`). At a throughput of 55 requests/s and 100 users in flight, each request averages `100 ÷ 55 ≈ 1.8 s`. Use it to sanity-check any benchmark, and to turn a latency target into a capacity.
+
+### 2.5 Cost per token
+`$/million output tokens = ($/hour) ÷ (tokens/s × 3600 ÷ 1e6)`. At $3.99/hour and 5,866 tokens/s: 21.1 M tokens/hour → $0.19.
+This counts output tokens only; prompt (prefill) tokens also use GPU time, so a prompt-heavy workload costs more than this figure suggests.
+
+### 2.6 Why batching is the dominant lever
+Decode is memory-bound (Lab 01 §2.4), so extra users sharing a step are nearly free until the math units or KV cache run out;
+prefill adds compute-heavy work that competes with decode (Lab 04). Lab 00 has the underlying arithmetic.
 
 ## 3. Predictions (written before the run, 2026-10-18)
 | Quantity | Prediction | Real | Verdict |

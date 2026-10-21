@@ -1,33 +1,70 @@
-# Lab 07: Quantization: speed, capacity, quality
+# Lab 07: quantization, speed vs capacity vs quality
 
-**Status:** Planned  
-**Baseten posting items:** Quantization (FP8/FP4, AWQ, GPTQ); tokens per GPU-hour; latency/throughput/cost tradeoffs  
-**Needs:** 1x H100 (FP8 needs Hopper or Ada), ~2 h (~$8) · **Depends on:** Labs 01, 05
+**Status:** Planned (flags and checkpoints confirmed against the installed vLLM version when we run it)  
+**Baseten posting items:** "Quantization (FP8/FP4, AWQ, GPTQ)", "tokens per GPU-hour", "clear latency/throughput/cost tradeoffs"  
+**Needs:** 1× H100 (FP8 needs Hopper or Ada), about 2 hours (~$8) · **Depends on:** Labs 01, 05
 
 ## 1. The question
-What do FP8 weights, INT4 weight-only quantization (AWQ/GPTQ) and an FP8 KV cache buy in speed and capacity, and what do they cost in quality?
+What do FP8 weights, INT4 weight-only quantization (AWQ, GPTQ) and an FP8 KV cache buy in speed and capacity, and what do they cost in quality?
 
-## 2. Plan
-1. Configs: BF16 baseline; FP8 weights; AWQ INT4; GPTQ INT4; FP8 KV cache; best combination. Confirm vLLM flags and checkpoint availability for the installed version.
-2. Speed: decode step at 1 user (predict from bytes / bandwidth from Lab 01), throughput at 64 users, TTFT.
-3. Capacity: KV-cache tokens reported by the server, and what that means for users per GPU.
-4. Quality: perplexity and a small task eval on a fixed subset for every config, same prompts, same settings.
-5. Cost: $ per million tokens per config at a fixed latency target (goodput), not at peak throughput.
+## 2. Concepts
 
-## 3. Predictions (write before running)
-| Quantity | Prediction (with arithmetic) | Real | Verdict |
+### 2.1 What quantization is
+Storing numbers in fewer bits. A weight `w` is mapped to a small integer or low-precision float `q` plus a **scale** `s`, with `w ≈ s·q`. Scales are usually kept per **group** (for example every 128 weights) so one outlier does not ruin a whole tensor's precision.
+
+### 2.2 Formats
+| Format | Bits | Notes |
+|---|---|---|
+| BF16 | 16 | baseline; wide range, low precision |
+| FP8 (E4M3 / E5M2) | 8 | native tensor-core support on Hopper and Ada; E4M3 (more mantissa) for weights/activations, E5M2 (more range) for gradients |
+| INT8 | 8 | integer; needs scales; common for weights and activations with care |
+| INT4 | 4 | weight-only in practice (AWQ, GPTQ); needs group scales |
+| FP4 (MXFP4 / NVFP4) | 4 | block-scaled float on newest hardware (Blackwell class) |
+
+### 2.3 Why it speeds decode (and what it does not do)
+- **Weight-only quantization (W4A16, W8A16)**: weights are stored small, read from HBM small, then converted to BF16 inside the kernel; the math is still BF16. Since decode is memory-bound (Lab 01), reading half or a quarter of the bytes cuts step time toward `bytes ÷ bandwidth`: for the 8B model, floors of about 4.8 ms (BF16), 2.4 ms (8-bit), 1.2 ms (4-bit). Prefill, which is compute-bound, gains little.
+- **Weight + activation quantization (W8A8, FP8)**: weights *and* activations are low precision and the matmul runs on FP8 tensor cores, which on an H100 have about twice the BF16 throughput. This helps prefill too.
+- **KV-cache quantization (FP8 KV)**: halves cache bytes: twice the tokens in the same memory (capacity) and less cache traffic per step.
+- Real speedups fall short of the byte ratio because of dequantization cost, non-quantized layers (embeddings, norms, sometimes the output head), and fixed overheads.
+
+### 2.4 How low-bit methods keep quality
+- **Outliers**: a few channels have much larger magnitudes than the rest and dominate error. Methods handle them differently.
+- **AWQ** (activation-aware weight quantization): finds the weight channels that matter most by looking at activation magnitudes on calibration data, and scales them to protect their precision before rounding.
+- **GPTQ**: quantizes layer by layer using second-order (Hessian) information, rounding each weight and adjusting the not-yet-quantized ones to compensate for the error.
+- **Calibration data**: methods that use it depend on it; it should resemble the target workload.
+- **Quality measures**: perplexity on held-out text (fast, a blunt signal) and task accuracy on a small fixed eval (slower, closer to what customers notice). Always compare against the BF16 baseline with identical prompts and settings, and check where degradation hurts (long context, math, code, non-English).
+
+### 2.5 Cost accounting
+Use **goodput at a latency target**, not peak tokens/s: a config that is 30% faster at peak but breaches the latency target at your operating load is not cheaper.
+
+## 3. Predictions (fill in BEFORE running)
+| Quantity | Prediction (arithmetic from Lab 01 floors) | Real | Verdict |
 |---|---|---|---|
+| ITL at 1 user: FP8 vs BF16 | | | |
+| ITL at 1 user: INT4 vs BF16 | | | |
+| Prefill speedup (TTFT at a long prompt) from FP8 vs from INT4 | | | |
+| KV capacity (tokens) with FP8 KV cache vs BF16 | | | |
+| Perplexity change per config | | | |
 
+## 4. Steps and why
+1. **Baseline BF16** with the Lab 05 settings. *Everything is a delta against it.*
+2. **FP8 weights** (online or a pre-quantized checkpoint, confirmed at run time). *The main modern option on Hopper.*
+3. **AWQ INT4** and **GPTQ INT4** checkpoints. *Compare the two INT4 methods on speed and quality.*
+4. **FP8 KV cache** alone and combined with the best weight format. *Isolates the capacity gain.*
+5. **Speed:** ITL at 1 user (compare with the floors), throughput at 64 users, TTFT on long prompts. **Capacity:** KV-cache tokens in the server log.
+6. **Quality:** perplexity plus a small task eval on a fixed subset for every config.
+7. **Cost:** goodput at a fixed latency target → $/M tokens per config.
 
-## 4. Done when
-- One table: config x (ITL, tokens/s at target, KV capacity, quality delta, $/M tokens)
-- Prediction vs measurement for the decode speedup from fewer bytes
-- A recommendation per workload type
+## 5. Results, 6. Interpretation, 7. Production takeaway, 8. Pitfalls
+_To fill in._ Pitfalls: comparing different calibration data; changing several variables at once; quality evals too small to see a 1% change; pre-quantized checkpoints from different sources behaving differently; forgetting that a quantized model can change which kernels run (profile it).
 
-## 5. Results, interpretation, production takeaway, pitfalls
-_To fill in using `templates/LAB_TEMPLATE.md`: raw data in `results/`, p50 and p99, repeats, and a check against a hand calculation._
+## 9. Done when
+- One table: config × (ITL, tokens/s at target, KV capacity, quality delta, $/M tokens).
+- Predicted vs measured decode speedup from fewer bytes, with an explanation of the gap.
+- A recommendation per workload type.
 
-## 6. Interview questions
+## 10. Interview questions
 1. Why does halving weight bytes not halve end-to-end latency?
-2. When is weight-only INT4 a bad idea compared with FP8?
+2. When is weight-only INT4 a poor choice compared with FP8 W8A8?
 3. How do you decide a quality loss is acceptable for a customer?
+4. How do AWQ and GPTQ differ in how they preserve accuracy?

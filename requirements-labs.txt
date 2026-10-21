@@ -1,0 +1,4 @@
+# Labs 01-04 (plain PyTorch). torch is preinstalled on the RunPod PyTorch image; install it yourself elsewhere.
+-r requirements.txt
+transformers
+accelerate

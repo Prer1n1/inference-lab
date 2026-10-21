@@ -1,0 +1,3 @@
+# vLLM labs (05-09). Use a separate environment: vLLM pins specific torch/CUDA builds.
+-r requirements.txt
+vllm

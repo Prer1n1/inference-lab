@@ -67,13 +67,22 @@ Always report **p50 and p99**, never only the mean; tail latency is what custome
 
 ## 7. Benchmarking traps (you will be asked about these)
 
-- **Closed vs open loop.** My harness is closed-loop (fixed concurrency). Real traffic is open-loop (arrivals at a
-  rate, independent of completions). Open loop exposes queueing collapse that closed loop hides.
-- **Warm-up.** First requests include CUDA graph capture, cache cold-starts. Discard them.
-- **Prompt realism.** Random-word prompts defeat prefix caching and speculative decoding. Use real text for those tests.
-- **`ignore_eos`.** Fixes output length so runs are comparable, but real outputs vary.
-- **Clock resolution.** Phase 0 lesson: on Windows `asyncio.sleep` returned early and produced fake numbers. The
+- **Closed vs open loop.** Closed loop keeps a fixed number of users in flight; real traffic is open loop (arrivals at a
+  rate, independent of completions). Open loop exposes queueing collapse that closed loop hides. The harness has both
+  (`--concurrency` and `--rate`).
+- **Warm-up.** First requests include CUDA graph capture and cold caches. Discard them (`--warmup`).
+- **Repeated prompts inflate results (Lab 05).** A fixed random seed sends the *same* prompts every run, so the engine's
+  prefix cache skips their prefill and throughput looks up to 33% better. Use fresh prompts unless you are deliberately
+  testing caching. Conversely, random prompts do give cache misses and poor speculative-decoding acceptance, so test those
+  features with realistic or deliberately shared text.
+- **The load generator can be the bottleneck (Lab 05).** aiohttp's default connector allows 100 connections, so a "256 users"
+  run really had ~100 in flight. Always confirm the *server* saw the load you asked for (running-request gauge).
+- **Do not equate streamed chunks with tokens.** With speculative decoding one chunk can carry several tokens. Take token
+  counts from the server's `usage` field and report TPOT.
+- **`ignore_eos`.** Fixes output length so runs are comparable, but real outputs vary (`--output-tokens 64-256`).
+- **Clock resolution.** On Windows `asyncio.sleep` returned early and produced fake numbers against the mock server. The
   harness looked fine and the data was wrong. Always sanity-check results against a number you can compute by hand.
+- **p99 over few requests is mostly the single worst one.** Use enough requests and report ranges across repeats.
 
 ## Reading, in this order
 1. vLLM paper: "Efficient Memory Management for LLM Serving with PagedAttention"

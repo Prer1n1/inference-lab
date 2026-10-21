@@ -3,5 +3,7 @@ __pycache__/
 *.pyc
 .env
 *.token
+scratch/
+scratch_tmp/
 results/mock*.jsonl
 results/warmup*.jsonl

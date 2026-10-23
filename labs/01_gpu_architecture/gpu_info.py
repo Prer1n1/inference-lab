@@ -44,17 +44,26 @@ def measure_tflops(dtype, n=8192):
 
 
 def memory_accounting_demo():
-    """Why nvidia-smi and PyTorch disagree: CUDA context, allocator caching."""
+    """Why nvidia-smi and PyTorch disagree: CUDA context, allocator caching.
+
+    The earlier benchmarks leave blocks in PyTorch's cache; without emptying it first, the 1 GiB tensor is
+    served from that cache and free memory never moves (seen in the first L40S run). Empty it first.
+    """
+    torch.cuda.synchronize()
+    torch.cuda.empty_cache()
     free0, total = torch.cuda.mem_get_info()
     x = torch.empty(2**30, dtype=torch.uint8, device="cuda")  # 1 GiB
     free1, _ = torch.cuda.mem_get_info()
     del x
-    free2, _ = torch.cuda.mem_get_info()
+    free2, _ = torch.cuda.mem_get_info()  # freed to PyTorch's cache, not to the driver
+    reserved_after_del = torch.cuda.memory_reserved()
+    torch.cuda.empty_cache()
+    free3, _ = torch.cuda.mem_get_info()  # now returned to the driver
     gib = lambda b: round(b / 2**30, 3)  # noqa: E731
     return {"total_gib": gib(total), "free_before_gib": gib(free0), "free_with_1gib_tensor_gib": gib(free1),
-            "free_after_del_gib": gib(free2),
+            "free_after_del_gib": gib(free2), "free_after_empty_cache_gib": gib(free3),
             "allocated_after_del_gib": gib(torch.cuda.memory_allocated()),
-            "reserved_after_del_gib": gib(torch.cuda.memory_reserved())}
+            "reserved_after_del_gib": gib(reserved_after_del)}
 
 
 def main():

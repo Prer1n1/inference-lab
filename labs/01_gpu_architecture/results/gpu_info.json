@@ -1,0 +1,32 @@
+{
+  "name": "NVIDIA L40S",
+  "compute_capability": "8.9",
+  "sm_count": 142,
+  "total_memory_gib": 44.39,
+  "torch": "2.8.0+cu128",
+  "cuda": "12.8",
+  "measured_bandwidth_gb_s": 655.3,
+  "measured_matmul_tflops": {
+    "bfloat16": 195.7,
+    "float16": 184.7
+  },
+  "ridge_point_flop_per_byte": 298.6,
+  "memory_accounting_gib": {
+    "total_gib": 44.394,
+    "free_before_gib": 39.947,
+    "free_with_1gib_tensor_gib": 39.947,
+    "free_after_del_gib": 39.947,
+    "allocated_after_del_gib": 0.008,
+    "reserved_after_del_gib": 4.0
+  },
+  "decode_step_floor_ms": {
+    "bf16": 24.42,
+    "fp8/int8": 12.21,
+    "int4": 6.1
+  },
+  "weights_gb": {
+    "bf16": 16.0,
+    "fp8/int8": 8.0,
+    "int4": 4.0
+  }
+}

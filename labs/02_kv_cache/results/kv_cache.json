@@ -1,0 +1,32 @@
+{
+  "model": "/root/models/llama-3.1-8b-instruct",
+  "formula_bytes_per_token": 131072,
+  "formula_kib_per_token": 128.0,
+  "measured": [
+    {
+      "seq_len": 512,
+      "formula_mib": 64.0,
+      "measured_mib": 76.1,
+      "ratio_measured_over_formula": 1.189
+    },
+    {
+      "seq_len": 2048,
+      "formula_mib": 256.0,
+      "measured_mib": 272.0,
+      "ratio_measured_over_formula": 1.062
+    },
+    {
+      "seq_len": 8192,
+      "formula_mib": 1024.0,
+      "measured_mib": 1088.0,
+      "ratio_measured_over_formula": 1.062
+    }
+  ],
+  "generation": {
+    "prompt_len": 512,
+    "new_tokens": 128,
+    "tok_per_s_with_cache": 39.2,
+    "tok_per_s_without_cache": 17.2,
+    "speedup_from_cache": 2.28
+  }
+}

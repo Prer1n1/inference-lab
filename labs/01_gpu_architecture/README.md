@@ -1,6 +1,6 @@
 # Lab 01: GPU architecture and the roofline
 
-**Status:** Scripts ready (not yet run)  
+**Status:** Done on an L40S (2026-10-23). The memory-accounting demo was fixed afterwards and needs a quick re-run.  
 **Baseten posting items:** "Deep understanding of GPU architecture"; "reason from first principles about where time and memory go"  
 **Needs:** any CUDA GPU (an inexpensive one is fine; the roofline scales with the card). About 15 minutes. · **Depends on:** Lab 00
 
@@ -50,14 +50,17 @@ Every decode step must read all the weights once: `step_time ≥ weight_bytes ÷
 - PyTorch's allocator keeps freed blocks in a cache ("reserved") instead of returning them to the driver, so `nvidia-smi` stays high after `del tensor`. `memory_allocated` counts live tensors; `memory_reserved` counts what PyTorch holds.
 - vLLM goes further and deliberately reserves most of the card at startup (Lab 05).
 
-## 3. Predictions (fill in BEFORE running)
+## 3. Predictions (written BEFORE running)
+
+Predictions for an L40S (spec used: 864 GB/s and 362 TFLOP/s dense BF16, taken from NVIDIA's listing from memory and not re-checked here).
+
 | Quantity | Prediction | Real | Verdict |
 |---|---|---|---|
-| Achieved copy bandwidth as % of the spec for your GPU | | | |
-| Achieved BF16 matmul TFLOP/s as % of spec | | | |
-| Ridge point (FLOP/byte) from your two measured numbers | | | |
-| Decode step floor for an 8B BF16 model on this GPU (ms) | weights ÷ measured bandwidth | | |
-| After freeing a 1 GiB tensor, does the "free memory" figure return to its starting value? | | | |
+| Achieved copy bandwidth as % of the spec for your GPU | 80% → 0.80 × 864 = 691.2 GB/s | **655.3 GB/s = 75.8%** | Close |
+| Achieved BF16 matmul TFLOP/s as % of spec | 75% → 0.75 × 362 = 271.5 TFLOP/s | **195.7 TFLOP/s = 54.1%** | Too optimistic |
+| Ridge point (FLOP/byte) from your two measured numbers | 271.5 TFLOP/s ÷ 691.2 GB/s = **393** (first written as 0.39: a 1,000× unit slip, caught and corrected) | **298.6** | Too high, because the matmul guess was too high |
+| Decode step floor for an 8B BF16 model on this GPU (ms) | 16 GB ÷ 691.2 GB/s = 23.1 ms | **24.42 ms** | Close |
+| After freeing a 1 GiB tensor, does the "free memory" figure return to its starting value? | No: PyTorch keeps freed blocks in its cache | Free memory **never moved** (39.947 GiB at all three points), `reserved` stayed 4.0 GiB | Right in spirit; see 6 for why the demo was flawed
 
 ## 4. Experiment, step by step
 ```bash
@@ -75,13 +78,28 @@ nvidia-smi
 Time: under a minute. Cost: nothing noticeable.
 
 ## 5. Results
-_To fill in. Record GPU name, driver, CUDA, torch version, the two measured ceilings, the ridge point and the floors._
+**Environment:** RunPod, 1× NVIDIA L40S (Ada, compute capability 8.9, 142 SMs, 48 GB listed = 44.39 GiB visible to PyTorch), driver 595.91.07, CUDA 13.2 driver / 12.8 runtime, PyTorch 2.8.0+cu128, Ubuntu 24.04, Python 3.12. Raw output: `results/gpu_info.json`.
+
+| Quantity | Run 1 | Run 2 (kept) | % of spec |
+|---|---|---|---|
+| Copy bandwidth (read + write) | 655.6 GB/s | **655.3 GB/s** | 75.8% of 864 |
+| BF16 matmul (8192³) | 194.4 TFLOP/s | **195.7 TFLOP/s** | 54.1% of 362 |
+| FP16 matmul | 189.8 | 184.7 | |
+| Ridge point (BF16 ÷ bandwidth) | 296.5 FLOP/byte | **298.6 FLOP/byte** | spec ratio would be 419 |
+
+Decode-step floor for 8B parameters (weights ÷ measured bandwidth, run 2): **BF16 16 GB → 24.42 ms**, FP8/INT8 8 GB → 12.21 ms, INT4 4 GB → 6.10 ms. Two runs agree within 1%.
+
+Memory accounting (run 1 and 2 identical): total 44.394 GiB; free 39.947 GiB before, with a 1 GiB tensor, and after `del`; `reserved` 4.0 GiB; `allocated` 0.008 GiB.
 
 ## 6. Interpretation
-_To fill in: is the ridge point far above decode's arithmetic intensity (about 1) and below prefill's (about the number of prompt tokens)? Which of your measured numbers is closer to its spec, and why might the other one not be?_
+- **Ridge point 298.6 FLOP/byte** is far above decode's arithmetic intensity at batch 1 (about 1) and far below prefill's at a 2,048-token prompt (about 2,048). That is the whole reason the two phases behave differently (confirmed in Lab 04).
+- **Bandwidth reached 75.8% of spec, matmul only 54.1%.** I do not know why the matmul is lower; plausible causes are power or clock limits and the matrix shape, but I did not test them. The practical lesson: measure, do not trust the datasheet.
+- **The ridge point from measured numbers (298.6) is well below the spec ratio (362 ÷ 864 ≈ 419)** because the matmul fell further below its spec than the copy did. Decisions should use the measured one.
+- **The 296.5 vs 298.6 difference between runs is under 1%**, so the measurement is stable.
+- **The memory-accounting demo was flawed.** Free memory did not change when a 1 GiB tensor was allocated, because the earlier benchmarks had already left 4 GiB in PyTorch's cache (`reserved` 4.0 GiB) and the tensor came from that cache. The gap between total (44.39) and free (39.95) is that 4.0 GiB cache plus about 0.45 GiB, which is probably the CUDA context (not separately measured). `gpu_info.py` now empties the cache first and also reports free memory after `empty_cache()`; the clean result still needs a re-run on a GPU.
 
 ## 7. Engineering takeaway
-_To fill in._ Hint: the floors computed here are the best decode speed a quantization or batching change can aim for on this GPU, and the ridge point tells you roughly how large a batch you need before adding users stops being free.
+Every later number is judged against two *measured* ceilings: 655 GB/s and 196 TFLOP/s on this L40S. They give a decode floor of about 24.4 ms per step for an 8B BF16 model (about 41 tokens/s for one user), and a ridge point near 300 FLOP/byte, which says roughly how large a batch must be before adding users stops being free. Quantization attacks the floor directly (FP8 halves it, INT4 quarters it).
 
 ## 8. Pitfalls to watch
 - Timing GPU work without `torch.cuda.synchronize()` measures only the launch. The script uses CUDA events and synchronizes.
@@ -93,6 +111,12 @@ _To fill in._ Hint: the floors computed here are the best decode speed a quantiz
 2. Why can `nvidia-smi` show 70 GB used when the model weights are 16 GB?
 3. Given a GPU's bandwidth and a model's size, what is the fastest one user can possibly decode? What would change that?
 4. Why do SMs switch between warps while one waits on memory?
+
+### Worked answers
+1. **Ridge point.** It is peak FLOP/s ÷ memory bandwidth, the arithmetic intensity at which a kernel stops being limited by memory and starts being limited by math. Measured on this L40S: 195.7 TFLOP/s ÷ 655.3 GB/s ≈ 299 FLOP/byte. Decode sits far below it: a BF16 weight is 2 bytes and does 2 FLOPs per sequence, so arithmetic intensity is about the batch size, 1 at batch 1. The math units are idle most of the time; only fewer bytes or more bandwidth helps.
+2. **70 GB in `nvidia-smi` with 16 GB of weights.** `nvidia-smi` shows everything the process holds: weights, the CUDA context, PyTorch's cached blocks and, for vLLM, a KV-cache pool it reserves at startup (about 90% of the card by default). Most of it is empty room. What one step *reads* (the traffic) is only the weights plus the KV of running sequences.
+3. **Fastest one user can decode.** Weight bytes ÷ bandwidth: 16 GB ÷ 655 GB/s ≈ 24.4 ms, about 41 tokens/s on this card (measured 24.9 ms in Lab 03, 98% of it). To go faster: fewer bytes (FP8/INT4), more bandwidth (a better GPU), split the bytes across GPUs (tensor parallelism), or emit more than one token per weight read (speculative decoding).
+4. **Warp switching.** A memory access takes hundreds of cycles. While one warp waits, the SM runs another warp whose data is ready, so the execution units stay busy; this is latency hiding, and it is why GPUs want many threads in flight.
 
 ## Further reading
 - Horace He, "Making Deep Learning Go Brrrr From First Principles" (memory-bound vs compute-bound reasoning).

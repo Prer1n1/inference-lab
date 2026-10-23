@@ -1,6 +1,6 @@
 # Lab 02: the KV cache
 
-**Status:** Scripts ready (not yet run)  
+**Status:** Done on an L40S (2026-10-23)  
 **Baseten posting items:** "KV-cache management", "KV-cache reuse"  
 **Needs:** CUDA GPU with room for the model (16 GB for Llama-3.1-8B in BF16, plus a few GB). About 20 minutes. · **Depends on:** Lab 01
 
@@ -43,10 +43,10 @@ Each decode step reads the weights *and* every sequence's cache. For the 8B mode
 ## 3. Predictions (fill in BEFORE running)
 | Quantity | Prediction | Real | Verdict |
 |---|---|---|---|
-| KiB per token for the model you load (from its config) | | | |
-| Measured cache MiB for 8,192 tokens ÷ the formula | | | |
-| Tokens/s with the cache vs without (512-token prompt, 128 new tokens): the ratio | | | |
-| Cache tokens that fit in 50 GiB | | | |
+| KiB per token for the model you load (from its config) | 2 × 32 × 8 × 128 × 2 bytes = 131,072 B = **128 KiB** (derived by hand in the session) | 128 KiB | Right |
+| Measured cache MiB for 8,192 tokens ÷ the formula | about 1.0 (1,024 MiB); a 1,000-token sequence was worked out as 125 MiB = 0.122 GiB | **1,088 MiB, ratio 1.0625** | Within 6% |
+| Tokens/s with the cache vs without (512-token prompt, 128 new tokens): the ratio | not recorded before the run | 39.2 vs 17.2 = **2.28×** | n/a |
+| Cache tokens that fit in 50 GiB | 50 GiB ÷ 128 KiB = 409,600 tokens (arithmetic, not measured) | n/a | n/a |
 
 ## 4. Experiment, step by step
 ```bash
@@ -59,13 +59,33 @@ python kv_cache.py --model meta-llama/Llama-3.1-8B-Instruct --out results/kv_cac
 3. Generates 128 tokens with `use_cache=True` and `use_cache=False` and compares tokens/s. *Shows what the cache buys.*
 
 ## 5. Results
-_To fill in._
+**Environment:** 1× L40S (44.39 GiB), PyTorch 2.8.0+cu128, transformers 5.20.2, Llama-3.1-8B-Instruct in BF16 loaded from a local folder. Raw output: `results/kv_cache.json`.
+
+| Sequence length | Formula (128 KiB × tokens) | Measured | Measured ÷ formula |
+|---|---|---|---|
+| 512 | 64 MiB | 76.1 MiB | 1.189 |
+| 2,048 | 256 MiB | 272.0 MiB | 1.0625 |
+| 8,192 | 1,024 MiB | 1,088.0 MiB | 1.0625 |
+
+Generation (512-token prompt, 128 new tokens, Hugging Face `generate`, batch 1):
+
+| | tokens/s | ms per token |
+|---|---|---|
+| With KV cache | 39.2 | 25.5 |
+| Without KV cache | 17.2 | 58.1 |
+| Speedup | **2.28×** | |
+
+Single run; not repeated.
 
 ## 6. Interpretation
-_To fill in: does the measured size match the formula, and by how much does it differ (padding, allocator rounding)? Does the speedup from the cache grow with prompt length? Why?_
+- **The formula holds.** 128 KiB per token matches the measurement within about 6% at 2,048 and 8,192 tokens. The excess is exactly 6.25% at both, and 12 MiB at 512 tokens. I did not find the cause (allocator rounding or temporary buffers are candidates); it is small enough to cover with a safety margin when planning capacity.
+- **With the cache, decode is almost bandwidth-limited.** 25.5 ms per token against the Lab 01 floor of 24.4 ms (weights only) is about 96%.
+- **Without it, each step recomputes the whole context.** A rough check: about 576 tokens on average × 16 GFLOP = 9.2 TFLOP, which is about 47 ms at the measured 194 TFLOP/s. The measured 58 ms is the same order. This is an estimate, not a decomposition.
+- **The speedup should grow with prompt length**, because the no-cache cost grows with context while the cached step stays near the weight-read floor. Only a 512-token prompt was tested, so that growth is a prediction, not a result.
+- **Not shown here:** the capacity (how many users fit) is arithmetic, not a measurement: 8,192 tokens = 1 GiB, so 50 GiB holds about 50 such sequences.
 
 ## 7. Engineering takeaway
-_To fill in._ Hint: KV capacity, not compute, usually decides how many users fit on a GPU. Which levers raise it (FP8 cache, GQA, paging, prefix reuse, shorter max length)?
+The KV cache trades memory for compute: 128 KiB per token buys a near-floor decode step. Because that memory is per user and per token, **KV capacity, not compute, usually decides how many users fit on a GPU** (Lab 03 ran out of memory at batch 32 × 4,096 tokens on this card). The levers that raise capacity: FP8 KV (2× tokens), GQA (4× fewer KV heads, already in Llama-3), paging (no over-reservation), prefix reuse (shared prompts stored once) and shorter maximum lengths.
 
 ## 8. Pitfalls to watch
 - The Hugging Face cache object's internal layout changes between versions; the script measures memory held instead of inspecting tensors.
@@ -76,6 +96,12 @@ _To fill in._ Hint: KV capacity, not compute, usually decides how many users fit
 2. A GPU has 80 GB and the model is 16 GB. Roughly how many 4k-token conversations fit?
 3. Why does PagedAttention help even when total memory is unchanged?
 4. Why can prefix caching only reuse full blocks, and what does that mean for prompt design?
+
+### Worked answers
+1. **Derivation.** Per token the model stores one key and one value per layer per KV head: `2 × layers × kv_heads × head_dim × bytes` = 2 × 32 × 8 × 128 × 2 = 131,072 B = 128 KiB for Llama-3.1-8B (the config gives `num_hidden_layers` 32, `num_key_value_heads` 8, `hidden_size` 4096 ÷ 32 heads = head_dim 128). GQA shares each K/V head among a group of query heads: 8 KV heads instead of 32 makes the cache 4× smaller (512 KiB → 128 KiB per token).
+2. **How many 4k conversations on 80 GB.** vLLM reserves about 90% = 72 GB; minus 16 GB of weights and working memory leaves about 53 GiB, which in Lab 05 was 438,000 tokens. 438,000 ÷ 4,096 ≈ 107 conversations (plus a margin for block rounding and per-request overhead).
+3. **PagedAttention.** Memory is allocated in small fixed blocks on demand and tracked in a block table, so there is no contiguous space and no over-reservation for the maximum length. The vLLM paper reported existing systems using only about 20-40% of reserved KV memory for real tokens, so the same GPU holds many more sequences.
+4. **Full blocks only.** Blocks are identified by a hash of their tokens (and the tokens before them), so only a complete block has a stable identity; a partial block changes as tokens are added. For prompt design: put shared content (system prompt, documents) first and stable, and put the varying part last, so the shared prefix covers as many whole blocks as possible.
 
 ## Further reading
 - Kwon et al., "Efficient Memory Management for Large Language Model Serving with PagedAttention" (SOSP 2023).

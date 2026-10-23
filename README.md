@@ -24,10 +24,10 @@ Status values: **Done** (run and written up), **Part A done** (laptop work finis
 | Lab | Topic | Status | Key result so far |
 |---|---|---|---|
 | [00](labs/00_concepts) | Concepts primer | Done | |
-| [01](labs/01_gpu_architecture) | GPU architecture and the roofline | Scripts ready | |
-| [02](labs/02_kv_cache) | KV cache | Scripts ready | |
-| [03](labs/03_batching) | Batching and context length | Scripts ready | |
-| [04](labs/04_prefill_decode) | Prefill vs decode against the roofline | Scripts ready | |
+| [01](labs/01_gpu_architecture) | GPU architecture and the roofline | Done (L40S) | measured 655 GB/s (76% of spec) and 196 TFLOP/s (54%); ridge point 299; 8B BF16 decode floor 24.4 ms |
+| [02](labs/02_kv_cache) | KV cache | Done (L40S) | 128 KiB/token confirmed within 6%; KV cache makes decode 2.3× faster at a 512-token prompt, ~96% of the bandwidth floor |
+| [03](labs/03_batching) | Batching and context length | Done (L40S) | batch 1 → 32 at short context: step +19%, throughput 27×; batch 32 × 4k context ran out of memory (overhead ~0.44 GiB per sequence beyond the KV formula) |
+| [04](labs/04_prefill_decode) | Prefill vs decode against the roofline | Done (L40S) | prefill 82-100% of the matmul ceiling (99.9% at 2k tokens); decode 94-104% of the bandwidth floor |
 | [05](labs/05_vllm_baseline) | vLLM baseline, concurrency sweep, cost per token | Measured (levels ≥128 need a re-run) | ~100 users: 44× throughput, $6.91 → ~$0.16 per M tokens; two benchmark bugs found and guarded |
 | [06](labs/06_profiling) | Profiling: where a step's time goes | Planned | |
 | [07](labs/07_quantization) | Quantization: FP8, AWQ, GPTQ, FP8 KV (FP4 as theory) | Planned | |
@@ -117,3 +117,4 @@ GitHub is the source of truth: edit locally, push, pull on the pod, run, copy re
 |---|---|---|
 | 2026-10-18 | Lab 05 baseline (H100, ~2.2 h) | $9.59 |
 | | **Balance after** | **$30.41** of $40 |
+| 2026-10-23 | Session A: Labs 01-04 (L40S, $1.10/hr; includes about 1 hour lost to a failed model cache and a pod migration) | _to fill in from the RunPod balance_ |
